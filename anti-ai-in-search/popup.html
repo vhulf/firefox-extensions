@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Anti-AI Search Settings</title>
+  <style>
+    /* Compact re-style of the options page for the toolbar popup.
+       Element ids overlap options.html so options.js is shared verbatim
+       (the popup additionally carries the per-tab state radio, which the
+       full settings page omits). Popup size is capped at 800x600 in both
+       engines, so the layout targets a ~520px surface and scrolls for
+       long provider lists. */
+    body { 
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+      width: 520px; 
+      margin: 0;
+      padding: 14px;
+      box-sizing: border-box;
+      max-height: 600px; 
+      overflow-y: auto; 
+      background-color: #be91cc; 
+      color: #fff; 
+    }
+    h1 { 
+      text-align: center; 
+      font-weight: 600;
+      font-size: 1.15em;
+      margin: 2px 0 4px;
+      color: #fff;
+    }
+    .subtitle { 
+      text-align: center; 
+      margin-bottom: 12px; 
+      font-size: 0.8em;
+      opacity: 0.9; 
+    }
+    .table-container { 
+      background: rgba(255, 255, 255, 0.1); 
+      border-radius: 10px; 
+      overflow: hidden; 
+      box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      margin-bottom: 12px;
+      transition: opacity 0.2s;
+    }
+
+    /* Filter state card; the radios are driven by the shared options.js.
+       The popup adds the third, per-tab option the full settings page omits. */
+    .state-box { padding: 12px; }
+    .state-title { font-weight: 600; font-size: 0.95em; margin-bottom: 9px; }
+    .state-option {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      margin-bottom: 6px;
+      border-radius: 8px;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .state-option:last-child { margin-bottom: 0; }
+    .state-option:hover { background: rgba(255, 255, 255, 0.22); }
+    .state-option input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+    }
+    .state-dot {
+      flex: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.75);
+      display: grid;
+      place-items: center;
+      transition: border-color 0.15s;
+    }
+    .state-dot::after {
+      content: "";
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #fff;
+      transform: scale(0);
+      transition: transform 0.15s, background 0.15s;
+    }
+    .state-text { min-width: 0; }
+    .state-label { display: block; font-weight: 600; font-size: 0.92em; }
+    .state-sub { display: block; font-size: 0.75em; opacity: 0.85; }
+    /* Checked = pastel pink fill with deep purple ink (high legibility). */
+    .state-option:has(input:checked) {
+      background: #F5CFE4;
+      border-color: #F5CFE4;
+    }
+    .state-option:has(input:checked) .state-dot { border-color: #A3417B; }
+    .state-option:has(input:checked) .state-dot::after { background: #A3417B; transform: scale(1); }
+    .state-option:has(input:checked) .state-label { color: #4A1540; }
+    .state-option:has(input:checked) .state-sub { color: #7A3D63; }
+    .state-option:has(input:focus-visible) { outline: 2px solid #fff; outline-offset: 1px; }
+    /* Config cards fade while the whole addon is off. */
+    .card-muted { opacity: 0.55; }
+    .provider-title { font-weight: 600; font-size: 0.95em; padding: 9px; margin: 5px 0px 2px 3px; }
+    table { 
+      width: 100%; 
+      border-collapse: collapse; 
+      text-align: left;
+      table-layout: fixed;
+    }
+    th { 
+      background-color: #7B3D8F; 
+      color: white; 
+      padding: 8px 10px; 
+      font-weight: 600; 
+      text-transform: uppercase; 
+      font-size: 0.72em; 
+      letter-spacing: 0.5px;
+    }
+    td { 
+      padding: 8px 10px; 
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1); 
+      background-color: #9962AA;
+      font-size: 0.85em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: background 0.2s;
+    }
+    tr.inactive td {
+      background-color: #7B3D8F;
+      opacity: 0.8;
+    }
+    tr:hover td {
+      background-color: #D778A3;
+    }
+    .toggle { 
+      width: 32px; 
+      height: 18px; 
+      cursor: pointer; 
+    }
+    .delete-btn { 
+      background: #d93025; 
+      color: white; 
+      border: none; 
+      padding: 4px 8px; 
+      border-radius: 4px; 
+      cursor: pointer; 
+      font-size: 0.9em; 
+    }
+    .delete-btn:hover { background: #a50e0e; }
+
+    /* Stop String Styling */
+    .stop-string-box { 
+      padding: 12px;
+    }
+    .stop-string-row { 
+      display: flex; 
+      align-items: center; 
+      gap: 8px; 
+    }
+    .stop-string-row label { 
+      font-weight: 600; 
+      white-space: nowrap;
+      font-size: 0.95em;
+    }
+    #ai-stop-string { 
+      flex: 1; 
+      min-width: 0;
+      padding: 7px; 
+      border: 1px solid rgba(255,255,255,0.3); 
+      border-radius: 4px; 
+      background: rgba(0,0,0,0.2); 
+      color: white; 
+      font-size: 0.95em;
+    }
+    #ai-stop-string::placeholder { color: rgba(255,255,255,0.5); }
+    #stop-string-saved { 
+      font-size: 0.85em; 
+      opacity: 0.9; 
+      white-space: nowrap;
+    }
+    .hint { 
+      display: block; 
+      margin-top: 8px; 
+      font-size: 0.8em; 
+      opacity: 0.8; 
+    }
+
+    /* Add Row Styling */
+    .add-row input { 
+      width: 100%; 
+      padding: 6px; 
+      border: 1px solid rgba(255,255,255,0.3); 
+      border-radius: 4px; 
+      background: rgba(0,0,0,0.2); 
+      color: white; 
+      font-size: 0.9em;
+      box-sizing: border-box;
+    }
+    .add-row input::placeholder { color: rgba(255,255,255,0.5); }
+
+    #add-provider { 
+      width: 100%;
+      background: #D778A3; 
+      color: white; 
+      border: none; 
+      padding: 6px; 
+      border-radius: 4px; 
+      cursor: pointer; 
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+    #add-provider:hover { background: #c46893; }
+    #add-error { 
+      text-align: right; 
+      margin: 0 2px 10px;
+      font-size: 0.8em;
+      color: #ffe1e1;
+    }
+
+    /* Footer */
+    .footer { text-align: center; margin-top: 4px; }
+    #open-full-settings { 
+      background: rgba(255,255,255,0.15); 
+      color: white; 
+      border: 1px solid rgba(255,255,255,0.35); 
+      padding: 8px 18px; 
+      border-radius: 6px; 
+      cursor: pointer; 
+      font-size: 0.9em;
+    }
+    #open-full-settings:hover { background: rgba(255,255,255,0.25); }
+    .footer-hint { 
+      display: block; 
+      margin-top: 6px; 
+      font-size: 0.72em; 
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <h1>Anti-AI Search</h1>
+  <p class="subtitle">Manage your Anti-AI search engine settings and filters</p>
+
+  <div class="table-container state-box">
+    <div class="state-title">Addon state</div>
+
+    <label class="state-option">
+      <input type="radio" name="filter-state" id="state-active">
+      <span class="state-dot" aria-hidden="true"></span>
+      <span class="state-text">
+        <span class="state-label">Anti-AI on</span>
+        <span class="state-sub">searches get the stop string appended, as usual</span>
+      </span>
+    </label>
+
+    <label class="state-option">
+      <input type="radio" name="filter-state" id="state-this-tab">
+      <span class="state-dot" aria-hidden="true"></span>
+      <span class="state-text">
+        <span class="state-label">Off in this tab</span>
+        <span class="state-sub">let the sloppy slop through, for this tab only</span>
+      </span>
+    </label>
+
+    <label class="state-option">
+      <input type="radio" name="filter-state" id="state-everywhere">
+      <span class="state-dot" aria-hidden="true"></span>
+      <span class="state-text">
+        <span class="state-label">Off everywhere</span>
+        <span class="state-sub">disable the addon, until you switch it back on</span>
+      </span>
+    </label>
+  </div>
+
+  <div class="table-container stop-string-box">
+    <div class="stop-string-row">
+      <label for="ai-stop-string">Anti-AI string</label>
+      <input type="text" id="ai-stop-string" placeholder="-ai" autocomplete="off" spellcheck="false">
+      <span id="stop-string-saved" hidden>Saved &#10003;</span>
+    </div>
+    <span class="hint">The string appended to every search query (default: <code>-ai</code>).</span>
+  </div>
+
+  <div class="table-container">
+    <div class="provider-title">Search provider options</div>
+    <table>
+      <colgroup>
+        <col style="width: 20%"><col style="width: 27%"><col style="width: 15%">
+        <col style="width: 11%"><col style="width: 12%"><col style="width: 15%">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>Provider</th>
+          <th>Domain RegEx</th>
+          <th>Path Prefix</th>
+          <th>Query Param</th>
+          <th style="text-align: center;">Active</th>
+          <th style="text-align: center;">Action</th>
+        </tr>
+      </thead>
+      <tbody id="providers-list"></tbody>
+      <tfoot>
+        <tr class="add-row">
+          <td><input type="text" id="new-name" placeholder="Name..."></td>
+          <td><input type="text" id="new-domain" placeholder="Pattern..."></td>
+          <td><input type="text" id="new-path" placeholder="/search"></td>
+          <td><input type="text" id="new-param" placeholder="q"></td>
+          <td style="text-align: center;">—</td>
+          <td style="text-align: center;"><button id="add-provider">Add</button></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  <p id="add-error" hidden>Please fill in all required fields...</p>
+
+  <div class="footer">
+    <button id="open-full-settings">Expand...</button>
+    <span class="footer-hint">Open this page in a full tab!</span>
+    <br>
+  </div>
+
+  <script src="options.js" type="module"></script>
+  <script src="popup.js" type="module"></script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "Anti-AI Search",
+  "version": "1.0",
+  "browser_specific_settings": {
+    "gecko": {
+        "id": "@vhulf-no-ai-in-search",
+        "data_collection_permissions": {
+            "required": [
+                "none"
+            ]
+        }
+    }
+  },
+  "description": "Uses webRequest to intercept searches and append a configurable AI stop string (default '-ai') to the query, from anywhere in the browser.",
+  "permissions": ["webRequest", "webRequestBlocking", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "commands": {
+    "toggle-ai-bypass": {
+      "description": "Toggle 'let the AI slop through' for the current tab"
+    }
+  },
+  "background": {
+    "scripts": ["background.js"],
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "data_collection_permissions": {
+      "required": ["none"],
+      "optional": ["none"]
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  }
+}
