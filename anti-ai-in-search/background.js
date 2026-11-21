@@ -33,9 +33,13 @@ function buildAiPattern(stopString) {
 
   let source;
   if (/^[-\u2013\u2014_]/.test(s)) {
-    source = `[-\\u2013\\u2014_]${escapeRegExp(s.slice(1))}`;
+    // (?<!\w) keeps the stop string a standalone token: "term-ai" is a
+    // hyphenated phrase to the engine (NOT an exclusion), so it must not
+    // count as already-appended, while our own "term -ai" redirect still
+    // matches on the follow-up request (space precedes the dash).
+    source = `(?<!\\w)(?:-|\\u2013|\\u2014|_)${escapeRegExp(s.slice(1))}`;
   } else {
-    source = escapeRegExp(s);
+    source = `(?<!\\w)${escapeRegExp(s)}`;
   }
   return new RegExp(source, 'i');
 }
